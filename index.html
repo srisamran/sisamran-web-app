@@ -8201,15 +8201,18 @@ function buildMonthlyWorkbookForVehicle(vehicle, targetMonth, targetYear) {
     return { ...log, distance };
   });
 
-  const monthlyLogs = logsWithDistance.filter(log => getThaiMonthFromDate(log.date) === targetMonth);
+  // ✅ FIX: ใช้เลขเดือน (1-12) เทียบ เหมือนกับ renderFuelLogs() ใน UI
+  const targetMonthIdx = getMonthIndexFromThaiName(targetMonth);
+  const monthlyLogs = logsWithDistance.filter(log => getMonthIndexFromDate(log.date) === targetMonthIdx);
 
   const monthIdx = FISCAL_MONTHS.indexOf(targetMonth);
-  const prevMonths = FISCAL_MONTHS.slice(0, monthIdx);
+  const prevMonthNames = FISCAL_MONTHS.slice(0, monthIdx);
+  const prevMonthIdxs = prevMonthNames.map(n => getMonthIndexFromThaiName(n)).filter(n => n > 0);
   
   let prevDistance = 0, prevLiters = 0, prevAmount = 0;
   logsWithDistance.forEach(l => {
-    const logMonth = getThaiMonthFromDate(l.date);
-    if (prevMonths.includes(logMonth)) {
+    const logMonthIdx = getMonthIndexFromDate(l.date);
+    if (prevMonthIdxs.includes(logMonthIdx)) {
       prevDistance += (parseFloat(l.distance) || 0);
       prevLiters += (parseFloat(l.liters) || 0);
       prevAmount += (parseFloat(l.amount) || 0);
@@ -8268,10 +8271,10 @@ function buildMonthlyWorkbookForVehicle(vehicle, targetMonth, targetYear) {
       formatDateToThaiBE(log.date),
       log.bookNo || "",
       log.receiptNo || "",
-      log.odometer,
-      log.distance,
-      log.liters,
-      log.amount,
+      parseFloat(log.odometer) || 0,
+      parseFloat(log.distance) || 0,
+      parseFloat(log.liters) || 0,
+      parseFloat(log.amount) || 0,
       log.approver || "",
       log.receiver || "",
       log.note || ""
@@ -8407,22 +8410,25 @@ function buildFullYearWorkbookForVehicle(vehicle, targetYear) {
   };
 
   FISCAL_MONTHS.forEach(month => {
-    const monthLogs = logsWithDistance.filter(log => getThaiMonthFromDate(log.date) === month);
+    // ✅ FIX: ใช้เลขเดือน (1-12) เทียบ เหมือนกับ renderFuelLogs() ใน UI
+    const curMonthIdx = getMonthIndexFromThaiName(month);
+    const monthLogs = logsWithDistance.filter(log => getMonthIndexFromDate(log.date) === curMonthIdx);
     
     const curDistance = monthLogs.reduce((sum, l) => sum + (parseFloat(l.distance) || 0), 0);
     const curLiters = monthLogs.reduce((sum, l) => sum + (parseFloat(l.liters) || 0), 0);
     const curAmount = monthLogs.reduce((sum, l) => sum + (parseFloat(l.amount) || 0), 0);
 
     const monthIdx = FISCAL_MONTHS.indexOf(month);
-    const prevMonths = FISCAL_MONTHS.slice(0, monthIdx);
+    const prevMonthNames = FISCAL_MONTHS.slice(0, monthIdx);
+    const prevMonthIdxs = prevMonthNames.map(n => getMonthIndexFromThaiName(n)).filter(n => n > 0);
 
     let prevDistance = 0;
     let prevLiters = 0;
     let prevAmount = 0;
 
     logsWithDistance.forEach(log => {
-      const logMonth = getThaiMonthFromDate(log.date);
-      if (prevMonths.includes(logMonth)) {
+      const logMonthIdx = getMonthIndexFromDate(log.date);
+      if (prevMonthIdxs.includes(logMonthIdx)) {
         prevDistance += (parseFloat(log.distance) || 0);
         prevLiters += (parseFloat(log.liters) || 0);
         prevAmount += (parseFloat(log.amount) || 0);
@@ -8466,10 +8472,10 @@ function buildFullYearWorkbookForVehicle(vehicle, targetYear) {
         formatDateToThaiBE(log.date),
         log.bookNo || "",
         log.receiptNo || "",
-        log.odometer || "",
-        log.distance || "",
-        log.liters,
-        log.amount,
+        parseFloat(log.odometer) || 0,
+        parseFloat(log.distance) || 0,
+        parseFloat(log.liters) || 0,
+        parseFloat(log.amount) || 0,
         log.approver || "",
         log.receiver || "",
         log.note || ""
