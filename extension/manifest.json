@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "UD-Local Companion Extension",
+  "version": "1.2",
+  "description": "ตัวช่วยดึงข้อมูลและกดรับหนังสือในระบบ UD-Local ผ่านหน้าเว็บไซต์คลังพัสดุ",
+  "host_permissions": [
+    "https://ud-local.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://sisamran.web.app/*",
+        "*://sisamran.firebaseapp.com/*",
+        "*://sisamran-c3e5f.web.app/*",
+        "*://sisamran-c3e5f.firebaseapp.com/*",
+        "*://srisamran-stock.web.app/*",
+        "file:///*index.html*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ]
+}
