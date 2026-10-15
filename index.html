@@ -8159,6 +8159,11 @@ function ensureAllVehicleLogsLoadedForYear(targetYear) {
     allVehicleLogsCacheYear = targetYear;
   }
   (fuelVehicles || []).forEach(v => {
+    // ✅ ถ้าเป็นคันที่กำลังเลือกดูอยู่บนหน้าเว็บ ให้ใช้ fuelLogs ใน memory เป็น Source of Truth เสมอ
+    if (v.id === selectedVehicleId && Array.isArray(fuelLogs)) {
+      allVehicleLogsCache[v.id] = [...fuelLogs];
+      return;
+    }
     try {
       const k = `office_fuel_logs_${targetYear}_${v.id}`;
       const raw = JSON.parse(localStorage.getItem(k) || '[]');
@@ -8178,10 +8183,13 @@ function ensureAllVehicleLogsLoadedForYear(targetYear) {
 
 // Helper: Build workbook สำหรับ 1 คัน (1 เดือน)
 function buildMonthlyWorkbookForVehicle(vehicle, targetMonth, targetYear) {
-  // ใช้ logs จาก allVehicleLogsCache (ทุกรถ) ไม่ใช่ fuelLogs global (ที่มีแค่ selectedVehicle)
+  // ✅ ใช้ logs ของรถคันนั้น โดยถ้าเป็นคันที่เปิดดูอยู่ (selectedVehicleId) ให้ใช้ fuelLogs จากหน้าเว็บโดยตรง
+  const rawSourceLogs = (vehicle && vehicle.id === selectedVehicleId && Array.isArray(fuelLogs) && fuelLogs.length > 0)
+    ? fuelLogs
+    : (allVehicleLogsCache[vehicle.id] || []);
   // ✅ CRITICAL FIX: FILTER ก่อน Repair ไม่ใช่ Repair ก่อน Filter (เหมือน renderFuelLogs)
   // Step 0: FILTER เฉพาะ log ที่ vehicleId ตรง หรือไม่มี vehicleId
-  const preFiltered = (allVehicleLogsCache[vehicle.id] || []).filter(l => l && l.id && (!l.vehicleId || l.vehicleId === vehicle.id));
+  const preFiltered = rawSourceLogs.filter(l => l && l.id && (!l.vehicleId || l.vehicleId === vehicle.id));
   // Step 1: Repair เฉพาะ log ที่ผ่าน filter แล้ว (set vehicleId ให้อันไหนยังไม่มี)
   const repairedRaw = repairLogsVehicleId(preFiltered, vehicle.id, true);
   // Step 2: Filter defense-in-depth — เอาเฉพาะ log ที่ vehicleId ตรงจริงๆ
@@ -8378,10 +8386,13 @@ function buildMonthlyWorkbookForVehicle(vehicle, targetMonth, targetYear) {
 function buildFullYearWorkbookForVehicle(vehicle, targetYear) {
   const wb = XLSX.utils.book_new();
 
-  // ใช้ logs จาก allVehicleLogsCache (ทุกรถ) ไม่ใช่ fuelLogs global (ที่มีแค่ selectedVehicle)
+  // ✅ ใช้ logs ของรถคันนั้น โดยถ้าเป็นคันที่เปิดดูอยู่ (selectedVehicleId) ให้ใช้ fuelLogs จากหน้าเว็บโดยตรง
+  const rawSourceLogs = (vehicle && vehicle.id === selectedVehicleId && Array.isArray(fuelLogs) && fuelLogs.length > 0)
+    ? fuelLogs
+    : (allVehicleLogsCache[vehicle.id] || []);
   // ✅ CRITICAL FIX: FILTER ก่อน Repair เพื่อป้องกัน log คันอื่นที่รั่วไหลมาถูกใส่ vehicleId ใหม่และผ่าน filter
   // Step 0: FILTER เฉพาะ log ที่ vehicleId ตรง หรือไม่มี vehicleId
-  const preFiltered = (allVehicleLogsCache[vehicle.id] || []).filter(l => l && l.id && (!l.vehicleId || l.vehicleId === vehicle.id));
+  const preFiltered = rawSourceLogs.filter(l => l && l.id && (!l.vehicleId || l.vehicleId === vehicle.id));
   // Step 1: Repair (set vehicleId) เฉพาะ log ที่ผ่าน filter
   const repaired = repairLogsVehicleId(preFiltered, vehicle.id, true);
   // Step 2: Filter defense-in-depth ซ้ำ
